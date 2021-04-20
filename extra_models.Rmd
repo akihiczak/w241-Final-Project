@@ -1,0 +1,155 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+library(qualtRics)
+library(data.table)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+#library(kableExtra)
+data<-read_survey('w241_fixed_data.csv')
+data <- as.data.table(data)
+```
+
+```{r}
+# Data Cleaning
+data <- data[data[,Finished==1]] # Remove unfinished surveys
+data <- data[data[, post3_3==2]] # Attention check 2
+data <- data[data[, post2_2==5]] # Attention check 1
+```
+
+
+```{r}
+
+#Socially conservative
+data[,soc_cons_bin:=ifelse(dem_4c_1>=6, 1, 0)]
+
+#Economically conservative
+data[, econ_cons_bin:=ifelse(dem_4d_1>5, 1, 0)]
+
+#Conservative average and binary
+data[, cons_avg:=mean(x=c(dem_4c_1, dem_4d_1)), by=seq_len(nrow(data))]
+data[, cons_bin:=ifelse(cons_avg>5, 1, 0)]
+
+#GW
+data[,GW_score:=mean(x = c(post1_4, post2_1, post2_3, post3_2)), by=seq_len(nrow(data))]
+
+#CO2
+data[,CO2_score:=mean(x = c(post1_2, post1_3, 8-post2_4, post3_1, post3_4)), by=seq_len(nrow(data))]
+
+#CO2_Health
+data[,CO2_health_score:=mean(x = c(post1_2, 8-post2_4, post3_4)), by=seq_len(nrow(data))]
+
+#Retention Score
+data[, retention:= SC0/8]
+
+#Time
+data[,time:=ifelse(Condition==1,`control_t_Page Submit`, ifelse(Condition==2, `co2_t_Page Submit`, `graphic_t_Page Submit`))]
+
+#Dem
+data$dem_bin = 1 - data$cons_bin
+```
+
+```{r}
+#Subsets
+control_and_text = subset(data, Condition != 3)
+control_and_graphic = subset(data, Condition != 2)
+text_and_graphic = subset(data, Condition != 1)
+
+control = subset(data, Condition == 1)
+text = subset(data, Condition == 2)                              
+graphic = subset(data, Condition == 3)
+
+conservatives = subset(data, cons_bin==1)
+non_conservatives = subset(data, cons_bin==0)
+```
+
+
+### Additional Belief Score Models to investigate HTEs
+
+
+
+```{r}
+#Using "non-conservative" indicator for easier interpretation
+
+model_CT_dem_bin_CO2 <- lm(CO2_score ~ Condition + dem_bin + dem_bin*Condition, data=control_and_text)
+summary(model_test)
+```
+
+```{r}
+##Using Econ_Cons_Bin (Economically Conservative)
+
+#Control and Text
+model_CT_Econs_hte_CO2 <- lm(CO2_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition,data=control_and_text)
+summary(model_CT_Econs_hte_CO2)
+
+model_CT_Econs_hte_health_score <- lm(CO2_health_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition,data=control_and_text)
+summary(model_CT_Econs_hte_health_score)
+
+model_CT_Econs_hte_GW <- lm(GW_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition, data=control_and_text)
+summary(model_CT_Econs_hte_GW)
+
+
+#Control and Graphic
+model_CG_Econs_hte_CO2 <- lm(CO2_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition,data=control_and_graphic)
+summary(model_CG_Econs_hte_CO2)
+
+model_CG_Econs_hte_health_score <- lm(CO2_health_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition,data=control_and_graphic)
+summary(model_CG_Econs_hte_health_score)
+
+model_CG_Econs_hte_GW <- lm(GW_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition, data=control_and_graphic)
+summary(model_CG_Econs_hte_GW)
+
+
+#Text and Graphic
+model_TG_Econs_hte_CO2 <- lm(CO2_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition,data=text_and_graphic)
+summary(model_TG_Econs_hte_CO2)
+
+model_TG_Econs_hte_health_score <- lm(CO2_health_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition,data=text_and_graphic)
+summary(model_TG_Econs_hte_health_score)
+
+model_TG_Econs_hte_GW <- lm(GW_score ~ Condition + econ_cons_bin + econ_cons_bin*Condition, data=text_and_graphic)
+summary(model_TG_Econs_hte_GW)
+```
+
+```{r}
+##Using Soc_Cons_Bin (Socially Conservative)
+
+#Control and Text
+model_CT_Econs_hte_CO2 <- lm(CO2_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition,data=control_and_text)
+summary(model_CT_Econs_hte_CO2)
+
+model_CT_Econs_hte_health_score <- lm(CO2_health_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition,data=control_and_text)
+summary(model_CT_Econs_hte_health_score)
+
+model_CT_Econs_hte_GW <- lm(GW_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition, data=control_and_text)
+summary(model_CT_Econs_hte_GW)
+
+
+#Control and Graphic
+model_CG_Econs_hte_CO2 <- lm(CO2_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition,data=control_and_graphic)
+summary(model_CG_Econs_hte_CO2)
+
+model_CG_Econs_hte_health_score <- lm(CO2_health_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition,data=control_and_graphic)
+summary(model_CG_Econs_hte_health_score)
+
+model_CG_Econs_hte_GW <- lm(GW_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition, data=control_and_graphic)
+summary(model_CG_Econs_hte_GW)
+
+
+#Text and Graphic
+model_TG_Econs_hte_CO2 <- lm(CO2_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition,data=text_and_graphic)
+summary(model_TG_Econs_hte_CO2)
+
+model_TG_Econs_hte_health_score <- lm(CO2_health_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition,data=text_and_graphic)
+summary(model_TG_Econs_hte_health_score)
+
+model_TG_Econs_hte_GW <- lm(GW_score ~ Condition + soc_cons_bin + soc_cons_bin*Condition, data=text_and_graphic)
+summary(model_TG_Econs_hte_GW)
+```
+
+
+## Appendix
