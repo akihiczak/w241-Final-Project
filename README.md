@@ -1,4 +1,5 @@
 # w241-Final-Project
+* Final_W241.pdf: Our final report
 * extra_models: contains a handful of the models we ran that were not included in our report
 * Interventions
   * control_text.pdf: Our control intervention, one page text describing the carbon cycle
