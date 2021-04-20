@@ -1,0 +1,526 @@
+---
+title: "Communicating Climate Science: Infographic vs. Text"
+output:
+  pdf_document: default
+  html_document: default
+resource_files:
+  - diagram/flow_diagram.png
+header-includes:
+   - \usepackage{dcolumn}
+---
+```{r wrap-hook}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
+```{r, echo = F}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
+```
+
+```{r, warning=FALSE, results='hide', message=FALSE}
+library(qualtRics)
+library(data.table)
+library(sandwich)
+invisible(library(lmtest))
+invisible(library(stargazer))
+library(kableExtra)
+data<-invisible(read_survey('w241_fixed_data.csv'))
+data <- as.data.table(data)
+```
+
+```{r}
+# Data Cleaning
+data <- data[data[,Finished==1]] # Remove unfinished surveys
+data <- data[data[, post3_3==2]] # Attention check 2
+data <- data[data[, post2_2==5]] # Attention check 1
+```
+
+```{r}
+#Socially conservative
+data[,soc_cons_bin:=ifelse(dem_4c_1>=6, 1, 0)]
+
+#Economically conservative
+data[, econ_cons_bin:=ifelse(dem_4d_1>5, 1, 0)]
+
+#Conservative average and binary
+data[, cons_avg:=mean(x=c(dem_4c_1, dem_4d_1)), by=seq_len(nrow(data))]
+data[, cons_bin:=ifelse(cons_avg>5, 1, 0)]
+
+#GW
+data[,GW_score:=mean(x = c(post1_4, post2_1, post2_3, post3_2)), by=seq_len(nrow(data))]
+
+#CO2
+data[,CO2_score:=mean(x = c(post1_2, post1_3, 8-post2_4, post3_1, post3_4)), by=seq_len(nrow(data))]
+
+#CO2_Health
+data[,CO2_health_score:=mean(x = c(post1_2, 8-post2_4, post3_4)), by=seq_len(nrow(data))]
+
+#Retention Score
+data[, retention:= SC0/8]
+
+#Time
+data[,time:=ifelse(Condition==1,`control_t_Page Submit`, ifelse(Condition==2, `co2_t_Page Submit`, `graphic_t_Page Submit`))]
+```
+
+```{r}
+#Subsets
+control_and_text = subset(data, Condition != 3)
+control_and_graphic = subset(data, Condition != 2)
+text_and_graphic = subset(data, Condition != 1)
+
+control = subset(data, Condition == 1)
+text = subset(data, Condition == 2)                              
+graphic = subset(data, Condition == 3)
+
+conservatives = subset(data, cons_bin==1)
+non_conservatives = subset(data, cons_bin==0)
+```
+
+
+## Abstract
+Climate change continues to impact life with increasingly dire consequences, yet public opinion in the United States is not united in terms of understanding climate change causes and the urgency of addressing them.  In this context, we perceive the need for strong and novel communication tools. Our experiment examines the ability to prompt a science-normative change in people’s understanding of climate change by presenting them with accepted, documented scientific data about the negative effects of human-caused CO2 releases (which drives climate change) in a text based and infographic based format. In particular, through this experiment we examine the effects of two textual and one graphical interventions on potentially changing minds regarding climate change, as well as measuring the information retained and the time spent reading these interventions. Furthermore, we thoroughly examine the possibility that people of different political ideologies may react and interact in different ways with the interventions. We find that there are no statistically significant effects caused by either treatment, likely due to a small sample size. However, we do see some suggestions that the direction of treatment effects is as expected despite the magnitude being smaller than anticipated. Furthermore, in our investigation of politically based heterogeneous treatment effects (HTE), we find strong correlations between self-reported conservatism and a lack of global warming and climate science belief, yet we do not find substantial evidence of any HTE on the basis of political orientation.
+
+
+## Background
+
+Each year, the damaging impacts of climate change grow more profound, and the resulting shifts in climate patterns threaten humanity globally (IPCC, 2014).  Some negative impacts (e.g., extinctions) have already occurred and cannot be undone, as plant and animal species struggle with the changed living conditions (Hansen et al., 2012).  Moreover, climate change presents a direct threat to humans; it is critical that people understand anthropogenic global warming so that they can act to address it (Ranney et. al., 2012).  Nevertheless, public understanding of climate change and public opinion about its seriousness vary across the United States (Howe et al., 2015), with a widespread void in the nonspecialist public’s understanding about the physical mechanisms of climate science  (Ranney et al., 2016).  In fact, even news articles pertaining to climate change are lacking in facts to convey the basic climate science mechanisms (Romps & Retszinger, 2019).  If public opinion were to move more in line with the scientific data on the causes and consequences of climate change, this may prompt more rigorous and effective governmental action to combat the negative impacts of global warming.  However, encouraging people to reconsider their views and adopt an alternative understanding that conflicts with their prior one is notoriously difficult unless people are presented with a novel means of understanding the issue (Ranney et al., 2012). 
+ 
+One area of concern in climate science is the significant increase in levels of atmospheric CO2 that contributes to an extra, anthropogenic, greenhouse effect. This release is the primary driver of climate change impacts.  An under-examined consequence of the tremendous production of CO2 that coincides with the worsening of climate change is the effect these higher levels of CO2 will have on human cognitive abilities.  With this only recently becoming a serious area of scientific concern, there has yet to be comprehensive research exploring the extent to which people care that rising ambient CO2 could impact their capacity to think.
+ 
+Human exposure to unventilated air in contained, indoor spaces has been documented to result in diminishment of a person’s reasoning and mental performance, as found in studies where the lack of ventilation is confirmed by measuring the ambient level of CO2 as a proxy for poor ventilation (Seppänen et al., 1999; Shendell et al., 2004; Xu et al., 2011; Coley et al., 2007).  Within enclosed spaces, CO2 is even more concentrated than it is in the outdoor atmosphere because the exhaled gas from breathing remains contained and therefore contributes to the concentration (Satish et al., 2012; Fisk et al., 2019).  This is especially worrying as city-dwellers spend approximately 90% of their days indoors (U.S. EPA, 2000).  There is a growing body of scientific evidence pointing to CO2 as a pollutant with direct detrimental impacts on the cognitive functioning of humans in schools and offices, where concentrations of CO2 are often highest (Satish et al., 2012; Fisk et al., 2019).  CO2 levels are typically higher in enclosed spaces with insufficient ventilation, and this can result in a reduced attention span and a lower test performance (Satish et al., 2012).  Elevated concentrations of CO2 can cause acidosis in humans, leading to symptoms like restlessness and mild hypertension, and eventually sleepiness and confusion (Xu et al., 2011).  Short term exposure to unventilated air as measured by CO2 at the level of 800 pmm is associated with Sick Building Syndrome, headaches, dizziness, fatigue, respiratory tract, eye, nasal and mucous membrane symptoms (Seppänen et al., 1999).  Moreover, elevated CO2 can cause people’s decision-making performance to fall to scores considered marginal and even dysfunctional (Satish et al., 2012; Allen et al., 2016).  Studies find significant and increasing negative effects of CO2 at levels between 1000 and 5000 parts per million; these levels are often reached in enclosed spaces with insufficient ventilation (Satish et al., 2012; Griffiths and Eftekharib, 2008; Allen et al., 2016; Kajtar et al., 2012; Scully et al., 2019).  
+ 
+One study sought to test whether the concentration of CO2 was a factor in the documented decline in human cognition that is associated with containment in poorly ventilated indoor spaces (Satish et al., 2012).  This study exposed humans to specific, elevated concentrations of CO2 in two and a half hour sessions and found significant negative effects on human thinking at concentrations as low as 1000 ppm (Satish et al., 2012).  Another study also observed a decline in human activity and ability to use information when people were exposed to CO2 levels of 1000 ppm, when compared with their exposure to levels at 500 ppm (Allen et al., 2016).
+ 
+Studies find that the negative impacts of CO2 exposure increase in severity as the concentration of CO2 increases (Satish et al., 2012; Jacobson et al., 2019; Allen et al., 2016).  According to the Scripps Institution of Oceanography, as of 24 May 2020, current atmospheric CO2 levels were 417.93 parts per million (ppm), up from a preindustrial value of 280 ppm (Scripps, 2020).  Some outdoor urban areas have reported CO2 concentrations as high as 500 ppm (Satish et al., 2012).  By the end of the century, the atmospheric CO2 concentration could exceed 900 ppm (Collins et al., 2013).
+ 
+Rising atmospheric levels of  CO2 could have negative consequences for people, through both indoor and outdoor exposure.  Even if efforts to combat climate change ensure that ambient outdoor CO2 concentrations do not exceed 1000 parts per million, the already significant increases in outdoor CO2 will thwart efforts to curb rising CO2 levels in indoor environments.  Reducing indoor levels of CO2 necessarily entails ventilation with outdoor air and concomitant further energy consumption (Azuma et al., 2018).  Therefore, suppressing the increase in atmospheric CO2 concentration is crucial to preventing further increases in the indoor environments (Azuma et al., 2018).   
+ 
+The increasing atmospheric concentrations of  CO2 created by anthropogenic climate change might negatively impact human cognition, yet people may not adequately recognize and understand this impending potential human crisis.  Developing a means to engage people’s recognition of the dangers of rising CO2 levels may also aid in achieving greater acknowledgement and acceptance of climate change’s causes and consequences.  Furthermore, an individual who is concerned about curbing CO2 emissions because of the adverse effects that the gas can have on one’s health can be incidentally in favor of actions that will mitigate climate change without necessarily needing to feel a concern for climate change.
+ 
+As demonstrated by the research of Ranney et al., presenting people with facts about the scientific mechanisms of processes like global warming, evolution, or heliocentrism is an effective intervention to change the minds of those who may otherwise remain entrenched in an opposing belief that is not supported by science (Ranney et al., 2016).  It is useful to provide factual explanations for different scientific processes so that people may understand how the mechanisms work; when people understand related scientific processes, this may prompt a science-normative change in their other beliefs.  For instance, if someone accepts beliefs that effectively deny global warming, in order to have them gain an understanding that actually corresponds with mechanisms of science, it could be more effective to explain to them the tangential dangers of CO2 exposure. Understanding this scientific mechanism then may prompt that person to a new understanding of global warming.  As Ranney explains, “Mechanistic knowledge, especially about global warming, is critical and perhaps paramount in determining a particular scientific position’s acceptability.  Specifically, mechanistic knowledge can ‘break ties’ among contentious positions if initial information spawns ambivalence” (Ranney et al., 2016).  The reason mechanistic explanations are so persuasive is because they explain causal relationships.    
+
+While there can be many factors that account for a person’s lack of knowledge or acceptance about climate science, by informing people about the facts of climate science, it is possible to change minds and develop greater civil science literacy.  In particular, mechanistic knowledge is critically important in determining whether a particular scientific understanding will be accepted (Ranney et al., 2016).  That is, while there may be extensive general awareness of claims about the negative impacts of climate change, there is very little scientific explanation to the public of the mechanism of how climate change results (Romps & Retszinger, 2019).  When people are presented with information about the mechanics of climate change in a clear and understandable framework, they not only develop a better understanding of the science, but they also alter their prior position of climate change denial (Ranney et al., 2016).  Mechanistic explanations help present information in a manner that does not devolve into evidentiary claims, and therefore this approach supports reasoning (Fernbach et al., 2013).  In fact, even small amounts of information about the mechanism of climate change can yield considerable conceptual changes in the areas of knowledge, attitude, and acceptance (Ranney et al., 2016).  
+
+## Research Question
+
+In order to convey the alarming importance of the negative effects of Global Warming on the climate, ecosystem, and human health, we need to be able to design effective and efficient ways of delivering factual information. Specifically, we define efficiency as the ability of a piece of information to be delivered **rapidly** (i.e How long does the intervention take to read?), **clearly** (i.e How much information is understood and retained?), and **convincingly** (i.e How much are beliefs changed as an effect of the intervention?). 
+
+We, therefore, decided to investigate the following research question: 
+
+  - What is the most effective form of communicating factual information regarding the cognitive consequences of excessive CO2 release?
+  
+The three dimensions of efficiency described above, led us to focus on the following set of outcome variables:
+
+- Global Warming / CO2 Belief Score
+- Retention
+- Reading Time
+
+## Outcome Variables
+
+### Belief Score (GW Score, CO2 Score)
+
+In the post-treatment phase of the experiment, we asked participants a series of questions in order to gauge their feelings towards the negative impact of CO2 on human health as well as how they felt about Global Warming in general. These possible responses were on a 7-point Likert scale with "Confidently Disagree" being 1 and "Confidently Agree" being 7. Using the responses to these questions, we constructed two variables called `CO2_score` and `GW_score` in such a way that a score closer to 1 would show strong disbelief in the negative effects of CO2/GW and a score closer to 7 would show strong belief. We also created a third variable called `CO2_health_score` which captured the same nuance but for questions specifically relating to the negative effects of CO2 on human health.
+
+```{r}
+
+par(mfrow=c(3,3))
+hist(data[data[,Condition==1]]$GW_score, breaks=5, main="Control GW score", xlab="GW score")
+hist(data[data[,Condition==2]]$GW_score, breaks = 5, main="Treatment Text GW score", xlab="GW score")
+hist(data[data[,Condition==3]]$GW_score, breaks=5, main="Treatment Graphic GW score", xlab="GW score")
+
+hist(data[data[,Condition==1]]$CO2_score, breaks=5, main="Control CO2 score", xlab="CO2 score")
+hist(data[data[,Condition==2]]$CO2_score, breaks = 5, main="Treatment Text CO2 score", xlab="CO2 score")
+hist(data[data[,Condition==3]]$CO2_score, breaks=5, main="Treatment Graphic CO2 score", xlab="CO2 score")
+
+hist(data[data[,Condition==1]]$CO2_health_score, breaks=5, main="Control CO2 health score", xlab="CO2 health score")
+hist(data[data[,Condition==2]]$CO2_health_score, breaks = 5, main="Treatment Text CO2 health score", xlab="CO2 health score")
+hist(data[data[,Condition==3]]$CO2_health_score, breaks=5, main="Treatment Graphic CO2 health score", xlab="CO2 health score")
+```
+
+Given that Global Warming and its mitigation often take the dimensions of a political issue, we were interested in exploring whether a person's political alignment could potentially be correlated with their feelings towards climate change. We subset the population by whether they consider themselves conservative or not by averaging the social conservativeness and economic conservativeness Likert scores and giving a value of 1 to those with scores higher than 5 (and 0 otherwise).
+
+```{r}
+par(mfrow=c(3,2))
+
+hist(conservatives$GW_score, breaks=5, main="Conservatives GW score", xlab="GW score", xlim = c(1,7))
+hist(non_conservatives$GW_score, breaks = 5, main="Non-conservatives GW score", xlab="GW score",xlim = c(1,7))
+
+hist(conservatives$CO2_score, breaks=5, main="Conservatives CO2 score", xlab="CO2 score",xlim = c(1,7))
+hist(non_conservatives$CO2_score, breaks = 5, main="Non-conservatives CO2 score", xlab="CO2 score",xlim = c(1,7))
+
+hist(conservatives$CO2_health_score, breaks=5, main="Conservatives CO2 health score", xlab="CO2 health score",xlim = c(1,7))
+hist(non_conservatives$CO2_health_score, breaks = 5, main="Non-conservatives CO2 health score", xlab="CO2 health score",xlim = c(1,7))
+```
+
+Although there were less individuals in the conservative subset, the distributions of the Belief scores seem different with conservatives, on average, showing lower scores.
+### Retention
+
+After the intervention delivery, we asked participants a series of retention questions aimed at assessing the extent to which they retained factual information presented in the intervention. We created a new variable called `retention` which represented the ratio of questions they got right and ranged from 0 to 1. It should be noted that since the factual information presented differed between the control and treatment conditions, we used two different sets of questions to assess retention: one for the control condition and another for the text and graphic conditions. Effectively, this produced two different distributions, as can be seen below.
+
+```{r}
+
+par(mfrow=c(2,2))
+hist(data[data[,Condition==1]]$retention, breaks=5, main="Control Text Retention", xlab="Retention Score")
+hist(data[data[,Condition==2]]$retention, breaks = 5, main="Treatment Text Retention", xlab="Retention Score")
+hist(data[data[,Condition==3]]$retention, breaks=5, main="Treatment Graphic Retention", xlab="Retention Score")
+
+```
+
+Evidently, the distributions of the two treatment conditions look more alike than does the control condition with either of them. This restricted us from performing any comparisons between the control and treatment groups with respect to retention. Nevertheless, we were more interested in exploring how retention is affected when the delivery medium is switched in treatment rather than when the content of the intervention changes, therefore this was not a particularly significant problem.
+
+### Reading Time
+
+Since designing a rapid intervention was part of our goal, we were interested in looking at reading time as an outcome variable. Specifically, this would allow us to, firstly, determine to what extent we were able to generate a fair comparison between the control and treatment conditions and, secondly, whether an infographic effectively decreases reading time.
+
+To develop a single column with reading time, we looked at the variables `control_t_Page Submit`, `co2_t_Page Submit`, and `graphic_t_Page Submit` which represented the amount of time in seconds that participants spent on the intervention page while taking the survey. Below we see the distribution of Reading Time for the three conditions.
+
+```{r}
+par(mfrow=c(2,2))
+hist(data[data[,Condition==1]]$time, breaks=10, main="Control Text Reading Time", xlab="Reading Time")
+hist(data[data[,Condition==2]]$time, breaks = 10, main="Treatment Text Reading Time", xlab="Reading Time")
+hist(data[data[,Condition==3]]$time, breaks=10, main="Treatment Graphic Reading Time", xlab="Reading Time")
+```
+
+As we see in the histograms above, the two control and treatment text conditions seem to have a similar distribution with the majority of individuals spending less than 200 seconds reading the intervention material. For the infographic treatment condition, however, the majority of participants seem to have spent less than 100 seconds on the intervention page. There are a few outliers mainly in the control and infographic conditions that seem to have spent more than 500 seconds of reading time.
+
+## Hypotheses
+
+Given the set of outcome variables and conditions we had, we developed a set of hypotheses to test which can be seen in the table below.
+
+
+```{r, out.width="50%"}
+table_df <- data.frame(Items=c("Control vs. Text", "Control vs. Infographic", "Text vs. Infographic"), `Belief Score`=c("CO2 Text Increases Belief Score","CO2 Text Increases Belief Score","No Effect"), `Retention` = c("N/A", "N/A","Infographic causes higher retention"), `Reading Time`=c("No effect", "Infographic causes lower reading time","Infographic causes lower reading time"))
+
+kbl(table_df) %>%
+  kable_styling(font_size = 8) %>%
+  kable_paper() 
+```
+
+## Potential Outcomes; ROXO
+We can also understand this experiment through the potential outcomes framework. For each of our three outcomes: beliefs, retention, and reading time, we are interested in calculating an average treatment effect which we estimate in the following way: $E[Y_i|d_i=1] - E[Y_i|d_i=0]$. Where 1 would indicate assignment to treatment group and 0 to control. We also at times calculate $E[Y_i|d_i=2] - E[Y_i|d_i=1]$, where 1 is the text treatment assignment and 2 is infographic treatment assignment, in order to measure the effect of receiving the treatment information in a different format.
+
+## Experimental Design
+
+In this experiment, we investigate subjects' interactions with three different interventions.  Subjects were recruited through amazon's MTurk service with a U.S. residency requirement.  They were then randomly assigned to receive exactly one of the three interventions, either a text about the carbon cycle, a text about the human health impacts of elevated carbon dioxide, or an infographic about the human health impacts of CO2.  Subjects are shown their randomly assigned treatment and asked to read it entirely without any time constraints. Their reading time is recorded and they then answer a post-treatment survey about their beliefs, followed by an eight question quiz to measure the amount of information retained, followed finally by a series of demographic questions.  Included in the survey are two attention check questions, participants who fail to correctly answer these questions were excluded from analysis; this criteria led to 5 out of 142 participants getting dropped.
+
+Our analyses are conducted between participants and models are constructed such that they compare only two intervention groups at a time. We compare the control text and CO2 text as a means for measuring effects specific to the content we are showing subjects, and we compare the CO2 text and CO2 infographic to detect effects that may result from a change in format. We also run comparisons between the infographic and control text in order to detect effects that may result from showing subjects the infographic (thus measuring the effect of changed content and format at the same time).
+
+## Data
+### Power Calculation
+
+To estimate the sample size required to be able to detect the effect size we wanted, we performed a power calculation by reusing the following code from the course material. In running our power calculations, we determined that the magnitude of the effect which we are interested in detecting is rather large, as we would not consider the intervention to be successful if it only barely changes subjects' beliefs about climate change. Because of this, we felt comfortable recruiting a smaller sample size to conserve our resources and accepted the possibility of letting small treatment effects go undetected.
+
+```{r}
+power_test_t <- function(
+  mean_control = 10, 
+  mean_treat = 11, 
+  sd_control = 3, 
+  sd_treat = 3.5,
+  number_per_condition = 40, 
+  power_loops = 100, 
+  ri_loops = 100, 
+  verbose = TRUE) { 
+
+    p_values <- NA   
+    ri <- NA 
+    d <- data.table()
+  
+    d[ , condition := rep(c('control', 'treatment'), each = number_per_condition)]  
+  
+    for(power_loop in 1:power_loops) { 
+      if(verbose == TRUE) {
+        if(power_loop %% 10 == 0) {
+          cat(sprintf('Loop Number: %.0f\n', power_loop))
+        }
+      }
+      
+      p_values[power_loop] <- t.test(
+        x = rnorm(number_per_condition, mean = mean_control, sd = sd_control), 
+        y = rnorm(number_per_condition, mean = mean_treat, sd = sd_treat)
+      )$p.value
+    }
+      
+    return(list(
+      'power' = mean(p_values < 0.05)
+      ))
+}
+```
+
+Overall, we were interested in detecting a sufficiently large effect to give interesting insight to the set of hypotheses we had formed. In other words, we were not interested in detecting very small treatment effects. We performed two power calculations as can be seen below.
+
+```{r}
+power_test_t(mean_control=4, mean_treat=5, sd_control=1.5, sd_treat=1.5, number_per_condition=40, verbose=FALSE)
+power_test_t(mean_control=0.7, mean_treat=0.9, sd_control=0.25, sd_treat=0.25, number_per_condition = 40, verbose=FALSE)
+```
+The first calculation relates to the `GW_score` variable in which we were interested in detecting a treatment effect of 1 and estimated a standard deviation of between 1-1.5 for the two groups. We found that a sample size of about 40 would yield sufficient power (0.83). Our second calculation related to the `retention` score in which we were looking for a treatment effect of 0.2 and estimated standard deviations of 0.2 or above. A sample size of 40 seemed to also yield more than sufficient power.
+
+### Data Collection
+
+For our data collection process, we recruited a total of 142 participants. We performed randomization from within our survey platform, Qualtrics. At the beginning of the survey, the Qualtrics randomizer assigns one of the three conditions (control, text, or graphic) randomly to participants using uniform probability.
+We purposefully added two attention check questions to make sure that participants were not providing random answers just to finish the survey quickly. These two questions were the following:
+
+- Please simply answer "Somewhat Agree"
+- Please simply select the number equal to five minus three
+
+We then removed responses from participants that had failed these two questions as we considered that they were randomly selecting their responses and not paying attention. That left us with 137 responses with a breakdown of: 
+
+- 37 in control
+- 51 in the graphic treatment
+- 49 in the text treatment
+
+![Flow Diagram]("flow_diagram.png")
+
+
+## Models
+
+For each of the outcome variables we have created a baseline model of the outcome variable regressed on the condition. Since we wanted to further explore the correlation between political alignment and a potential Heterogeneous Treatment Effect (HTE) we have also added models aiming to capture the interaction between assigned treatment and conservativeness.
+
+### Belief Score Models
+
+In measuring belief, we look at three different dimensions: belief and concern regarding globabl warming, belief and concern regarding elevated carbon dioxide release, and lastly belief and concern regarding the human health consequences of elevated CO2 release.  These dimensions are evaluated for the control text versus the CO2 text, the control text versus the infograpic, and the CO2 text versus the infographic.  Further models are made to investigate the possibility of a heteregenous treatment effect stemming from political orientation. Many models were created while investigating the possibility of a political heterogeneous treatment effect which are included in our Github repository.
+
+```{r}
+#BASELINE
+
+#Control and Text
+model_CT_CO2 <- lm(CO2_score ~ Condition, data=control_and_text)
+se_CT_CO2 <- sqrt(diag(vcovHC(model_CT_CO2, type="HC1")))
+coef_CT_CO2 <- coeftest(model_CT_CO2, vcov. = vcovHC(model_CT_CO2, type="HC1"))
+
+model_CT_health_score <- lm(CO2_health_score ~ Condition, data=control_and_text)
+se_CT_health_score <- sqrt(diag(vcovHC(model_CT_health_score, type="HC1")))
+coef_CT_health_score <- coeftest(model_CT_health_score, vcov. = vcovHC(model_CT_health_score, type="HC1"))
+
+model_CT_GW <- lm(GW_score ~ Condition, data=control_and_text)
+se_CT_GW <- sqrt(diag(vcovHC(model_CT_GW, type="HC1")))
+coef_CT_GW <- coeftest(model_CT_GW, vcov. = vcovHC(model_CT_GW, type="HC1"))
+
+#Control and Graphic
+model_CG_CO2 <- lm(CO2_score ~ Condition, data=control_and_graphic)
+se_CG_CO2 <- sqrt(diag(vcovHC(model_CG_CO2, type="HC1")))
+coef_CG_CO2 <- coeftest(model_CG_CO2, vcov. = vcovHC(model_CG_CO2, type="HC1"))
+
+model_CG_health_score <- lm(CO2_health_score ~ Condition, data=control_and_graphic)
+se_CG_health <- sqrt(diag(vcovHC(model_CG_health_score, type="HC1")))
+coef_CG_health <- coeftest(model_CG_health_score, vcov. = vcovHC(model_CG_health_score, type="HC1"))
+
+model_CG_GW <- lm(GW_score ~ Condition, data=control_and_graphic)
+se_CG_GW <- sqrt(diag(vcovHC(model_CG_GW, type="HC1")))
+coef_CG_GW <- coeftest(model_CG_GW, vcov. = vcovHC(model_CG_GW, type="HC1"))
+
+
+#Text and Graphic
+model_TG_CO2 <- lm(CO2_score ~ Condition, data=text_and_graphic)
+se_TG_CO2 <- sqrt(diag(vcovHC(model_TG_CO2, type="HC1")))
+coef_TG_CO2 <- coeftest(model_TG_CO2, vcov. = vcovHC(model_TG_CO2, type="HC1"))
+
+model_TG_health_score <- lm(CO2_health_score ~ Condition, data=text_and_graphic)
+se_TG_health <- sqrt(diag(vcovHC(model_TG_health_score, type="HC1")))
+coef_TG_health <- coeftest(model_TG_health_score, vcov. = vcovHC(model_TG_health_score, type="HC1"))
+
+model_TG_GW <- lm(GW_score ~ Condition, data=text_and_graphic)
+se_TG_GW <- sqrt(diag(vcovHC(model_TG_GW, type="HC1")))
+coef_TG_GW <- coeftest(model_TG_GW, vcov. = vcovHC(model_TG_GW, type="HC1"))
+```
+
+
+
+```{r}
+##Using Cons_Bin; the averaged conservatism measure
+
+#Control and Text
+model_CT_cons_hte_CO2 <- lm(CO2_score ~ Condition + cons_bin + cons_bin*Condition,data=control_and_text)
+se_CT_cons_CO2 <- sqrt(diag(vcovHC(model_CT_cons_hte_CO2, type="HC1")))
+coef_CT_cons_CO2 <- coeftest(model_CT_cons_hte_CO2, vcov. = vcovHC(model_CT_cons_hte_CO2, type="HC1"))
+
+
+model_CT_cons_hte_health_score <- lm(CO2_health_score ~ Condition + cons_bin + cons_bin*Condition,data=control_and_text)
+se_CT_cons_health <- sqrt(diag(vcovHC(model_CT_cons_hte_health_score, type="HC1")))
+coef_CT_cons_health <- coeftest(model_CT_cons_hte_health_score, vcov. = vcovHC(model_CT_cons_hte_health_score, type="HC1"))
+
+
+model_CT_cons_hte_GW <- lm(GW_score ~ Condition + cons_bin + cons_bin*Condition, data=control_and_text)
+se_CT_cons_GW <- sqrt(diag(vcovHC(model_CT_cons_hte_GW, type="HC1")))
+coef_CT_cons_GW <- coeftest(model_CT_cons_hte_GW, vcov. = vcovHC(model_CT_cons_hte_GW, type="HC1"))
+
+#Control and Graphic
+model_CG_cons_hte_CO2 <- lm(CO2_score ~ Condition + cons_bin + cons_bin*Condition,data=control_and_graphic)
+se_CG_cons_CO2 <- sqrt(diag(vcovHC(model_CG_cons_hte_CO2, type="HC1")))
+coef_CG_cons_CO2 <- coeftest(model_CG_cons_hte_CO2, vcov. = vcovHC(model_CG_cons_hte_CO2, type="HC1"))
+
+model_CG_cons_hte_health_score <- lm(CO2_health_score ~ Condition + cons_bin + cons_bin*Condition,data=control_and_graphic)
+se_CG_cons_health <- sqrt(diag(vcovHC(model_CG_cons_hte_health_score, type="HC1")))
+coef_CG_cons_health <- coeftest(model_CG_cons_hte_health_score, vcov. = vcovHC(model_CG_cons_hte_health_score, type="HC1"))
+
+model_CG_cons_hte_GW <- lm(GW_score ~ Condition + cons_bin + cons_bin*Condition, data=control_and_graphic)
+se_CG_cons_GW <- sqrt(diag(vcovHC(model_CG_cons_hte_GW, type="HC1")))
+coef_CG_cons_GW <- coeftest(model_CG_cons_hte_GW, vcov. = vcovHC(model_CG_cons_hte_GW, type="HC1"))
+
+
+#Text and Graphic
+model_TG_cons_hte_CO2 <- lm(CO2_score ~ Condition + cons_bin + cons_bin*Condition,data=text_and_graphic)
+se_TG_cons_CO2 <- sqrt(diag(vcovHC(model_TG_cons_hte_CO2, type="HC1")))
+coef_TG_cons_CO2 <- coeftest(model_TG_cons_hte_CO2, vcov. = vcovHC(model_TG_cons_hte_CO2, type="HC1"))
+
+model_TG_cons_hte_health_score <- lm(CO2_health_score ~ Condition + cons_bin + cons_bin*Condition,data=text_and_graphic)
+se_TG_cons_health <- sqrt(diag(vcovHC(model_TG_cons_hte_health_score, type="HC1")))
+coef_TG_cons_health <- coeftest(model_TG_cons_hte_health_score, vcov. = vcovHC(model_TG_cons_hte_health_score, type="HC1"))
+
+model_TG_cons_hte_GW <- lm(GW_score ~ Condition + cons_bin + cons_bin*Condition, data=text_and_graphic)
+se_TG_cons_GW <- sqrt(diag(vcovHC(model_TG_cons_hte_GW, type="HC1")))
+coef_TG_cons_GW <- coeftest(model_TG_cons_hte_GW, vcov. = vcovHC(model_TG_cons_hte_GW, type="HC1"))
+```
+
+### Retention Models
+
+```{r}
+model_retention_text_graphic <- lm(retention ~ as.factor(Condition), data=text_and_graphic)
+se_retention_text_graphic <- sqrt(diag(vcovHC(model_retention_text_graphic, type="HC1")))
+coef_retention_text_graphic <- coeftest(model_retention_text_graphic, vcov. = vcovHC(model_retention_text_graphic, type="HC1"))
+
+model_cons_hte_retention_text_graphic <- lm(retention ~ as.factor(Condition) + cons_bin + cons_bin*as.factor(Condition),data=text_and_graphic)
+se_cons_hte_retention_text_graphic <- sqrt(diag(vcovHC(model_cons_hte_retention_text_graphic, type="HC1")))
+coef_cons_hte_retention_text_graphic <- coeftest(model_cons_hte_retention_text_graphic, vcov. = vcovHC(model_cons_hte_retention_text_graphic, type="HC1"))
+```
+
+### Time Models
+
+```{r}
+# Control and text
+model_time_control_text <- lm(time ~ as.factor(Condition), data = control_and_text)
+se_time_control_text <- sqrt(diag(vcovHC(model_time_control_text, type="HC1")))
+coef_time_control_text <-coeftest(model_time_control_text, vcov. = vcovHC(model_time_control_text, type="HC1"))
+
+model_cons_hte_time_control_text <- lm(time ~ as.factor(Condition) + cons_bin + cons_bin*as.factor(Condition), data=control_and_text)
+se_cons_hte_time_control_text <- sqrt(diag(vcovHC(model_cons_hte_time_control_text, type="HC1")))
+coef_cons_hte_time_control_text <- coeftest(model_cons_hte_time_control_text, vcov. = vcovHC(model_cons_hte_time_control_text, type="HC1"))
+
+#Text and graphic
+model_time_text_graphic <- lm(time ~ as.factor(Condition), data = text_and_graphic)
+se_time_text_graphic <- sqrt(diag(vcovHC(model_time_text_graphic, type="HC1")))
+coef_time_text_graphic <- coeftest(model_time_text_graphic, vcov. = vcovHC(model_time_text_graphic, type="HC1"))
+
+model_cons_hte_time_text_graphic <- lm(time ~ as.factor(Condition) + cons_bin + cons_bin*as.factor(Condition), data=text_and_graphic)
+se_cons_hte_time_text_graphic <- sqrt(diag(vcovHC(model_cons_hte_time_text_graphic, type="HC1")))
+coef_cons_hte_time_text_graphic <- coeftest(model_cons_hte_time_text_graphic, vcov. = vcovHC(model_cons_hte_time_text_graphic, type="HC1"))
+```
+
+## Tables
+
+### Belief Comparisons
+```{r, results='asis'}
+#Belief Model Tables
+stargazer(model_CT_CO2, model_CT_cons_hte_CO2, model_CT_health_score, model_CT_cons_hte_health_score, se=list(se_CT_CO2, se_CT_cons_CO2, se_CT_health_score, se_CT_cons_health), type="latex",title="Belief models for Control Text vs. CO2 Text", covariate.labels = c("Treatment Text", "Conservative", "Tr. txt * Cons"),  align=TRUE,font.size = "scriptsize",column.sep.width="1pt", single.row=TRUE, header=FALSE)
+
+stargazer(model_CT_GW, model_CT_cons_hte_GW, se=list(se_CT_GW, se_CT_cons_GW), type="latex",title="Belief models for Control Text vs. CO2 Text", covariate.labels = c("Treatment Text", "Conservative", "Tr. txt * Cons"),  align=TRUE,font.size = "scriptsize",column.sep.width="1pt", single.row=TRUE, header=FALSE)
+
+stargazer(model_CG_CO2, model_CG_cons_hte_CO2, model_CG_health_score, model_CG_cons_hte_health_score, se=list(se_CG_CO2, se_CG_cons_CO2, se_CG_health, se_CG_cons_health), type="latex",title="Belief models for Control Text vs. CO2 Infographic", covariate.labels = c("Graphic", "Conservative", "Graphic * Cons."),  align=TRUE,font.size = "scriptsize", column.sep.width="0.5pt", single.row=TRUE)
+
+stargazer(model_CG_GW, model_CG_cons_hte_GW, se=list(se_CG_GW, se_CG_cons_GW), type="latex",title="Belief models for Control Text vs. CO2 Infographic", covariate.labels = c("Graphic", "Conservative", "Graphic * Cons."),  align=TRUE,font.size = "scriptsize", column.sep.width="1pt", single.row=TRUE)
+
+stargazer(model_TG_CO2, model_TG_cons_hte_CO2, model_TG_health_score, model_TG_cons_hte_health_score, se=list(se_TG_CO2, se_TG_cons_CO2, se_TG_health, se_TG_cons_health), type="latex", title="Belief models for CO2 Text vs. CO2 Infographic", covariate.labels = c("Graphic", "Conservative", "Graphic * Cons."),  align=TRUE,font.size = "scriptsize",column.sep.width="1pt", single.row=TRUE)
+
+stargazer(model_TG_GW, model_TG_cons_hte_GW, se=list(se_TG_GW, se_TG_cons_GW), type="latex", title="Belief models for CO2 Text vs. CO2 Infographic", covariate.labels = c("Graphic", "Conservative", "Graphic * Cons."),  align=TRUE,font.size = "scriptsize",column.sep.width="1pt", single.row=TRUE)
+```
+
+
+### Retention Comparison
+```{r, results='asis'}
+stargazer(model_retention_text_graphic, model_cons_hte_retention_text_graphic,se=list(se_retention_text_graphic, se_cons_hte_retention_text_graphic), type="latex",title="Retention models comparison", dep.var.labels = "Retention",covariate.labels = c("Graphic Condition", "Conservative", "Graphic * Cons."),  align=TRUE,font.size = "scriptsize", column.sep.width="1pt", single.row=TRUE, header=FALSE)
+```
+
+### Reading Time Comparison
+```{r, results='asis'}
+stargazer(model_time_control_text, model_cons_hte_time_control_text,  se=list(se_time_control_text, se_cons_hte_time_control_text), 
+          type="latex",title="Reading time models comparison", dep.var.labels = "Reading Time Control vs. Text", covariate.labels = c("Text Condition", "Conservative", "Text * Cons.", "Graphic * Cons.", "Graphic "), align=TRUE,font.size = "scriptsize", column.sep.width="0.5pt", single.row=TRUE, header=FALSE)
+
+stargazer(model_time_text_graphic,model_cons_hte_time_text_graphic,  se=list(se_time_text_graphic, se_cons_hte_time_text_graphic), 
+          type="latex",title="Reading time models comparison", dep.var.labels = "Reading Time Control vs. Text", covariate.labels = c("Text Condition", "Conservative", "Text  * Cons.", "Graphic * Cons.", "Graphic"), align=TRUE,font.size = "scriptsize", column.sep.width="0.5pt", single.row=TRUE, header=FALSE)
+```
+
+## Analysis and Discussion
+
+One of the first issues that fell to our attention was that our data showed heteroskedasticity. As we can see in the Normal Q-Q plot below, variance seems to be increasing at higher theoretical quantiles. To confirm this hypothesis we ran a Breusch-Pagan test on our HTE model which yielded a significant p-value meaning that we were rejecting the null hypothesis of no heteroskedasticity. It was, therefore, particularly important to use robust standard errors as we could, otherwise, be led to false conclusions about significance.
+
+```{r}
+par(mfrow=c(2,2))
+plot(model_cons_hte_time_control_text)
+lmtest::bptest(time ~ Condition + cons_bin + cons_bin*Condition, data=control_and_text) # heteroskedastic
+```
+In our estimates for the effect of the treatments on different dimensions of climate change beliefs, we do not find any large effects and we compute, in general, statistically insignificant estimates for the effects. It is a strong possibility that there are in fact small effects which we are not detecting due to our choice of a smaller sample size; however, we did not set out to find small effects as we were interested in measuring whether our interventions could make substantial changes in peoples' beliefs about climate change. Additionally, in our investigation of a heteregeneous treatment effect for beliefs on the basis of political conservativeness, we did not find substantial evidence of any notable HTE. We did find a small number of statistically significant effects for belief, conditional on conservativeness, but these were a small minority of models among many we made, and should be taken with a grain of salt.
+
+Furthermore, it is important to note that although the possibility of heterogeneous treatment effects was investigated throughout our analyses, detecting these effects was not consider during our power calculations. It is likely the case that we were underpowered to detect those effects, if they were present. We can see from the code below that there was only a small proportion of self reported conservatives in our sample (23 out of 137), and they were not perfectly distributed across our treatments. Future research concerned with the different ways communicating climate science may depend on the recipient's political ideology should consider a higher powered design.
+
+```{r}
+data[cons_bin == 1, table(Condition)]
+```
+
+Looking at the impact of being in the infographic group on retention, we get an estimate of `r coef_retention_text_graphic[2]` with a non-significant p value of `r coef_retention_text_graphic[8]`. Given that the standard error we get for the estimate is `r coef_retention_text_graphic[4]`, the 95% Confidence Interval for our estimate overlaps zero. We, therefore, fail to reject the null hypothesis. In our HTE model for conservativeness in retention, we estimate the Conditional Average Treatment Effect on retention for self-reported conservatives as `r coef_cons_hte_retention_text_graphic[2] + coef_cons_hte_retention_text_graphic[4]` which, given the combined standard errors of `r coef_cons_hte_retention_text_graphic[6] + coef_cons_hte_retention_text_graphic[8]` overlaps with 0 and is therefore not significant.
+
+In our reading time models, although we got interesting treatment effect estimates, our standard errors were quite large, most probably due to our limited sample size, and did not reach statistical significance. Nevertheless, we believe it is important to note the ATE estimate of `r coef_time_text_graphic[2]` in the comparison between the infographic and text treatments, although the standard error was at `r coef_time_text_graphic[4]`, meaning that our 95% CI overlapped 0. It is equally important to mention the ATE estimate of  `r coef_time_control_text[2]` in the comparison between the control and text conditions, with a standard error of  `r coef_time_control_text[4]`. Lastly, the CATE estimate for conservativeness and reading time in the infographic-text comparison was `r coef_cons_hte_time_text_graphic[2] + coef_cons_hte_time_text_graphic[4]` with a standard error of `r coef_cons_hte_time_text_graphic[6] + coef_cons_hte_time_text_graphic[8]` which, although not significant, paints an interesting potential relationship.
+
+## Conclusions and Take-aways
+
+Although we were not successful in detecting any large treatment effects, as we had initially set out for, we were able to get some very interesting insight from a diverse pool of US-based participants. Specifically, we deemed it interesting that political alignment seemed to be correlated with reading time and belief score. We believe that especially the latter relationship showcases the importance of providing accurate, non-partisan information about global warming to the general public since it is a subject that should concern individuals regardless of their political alignment. One potential source of political bias might have been introduced by us including the UC Berkeley logo in the survey, since the University has a well-known political reputation.
+
+In hindsight, we might have chosen a larger sample size so as to produce a relatively more well-powered study. This is because many of our estimates were on the edge of significance and it would have been interesting to see whether lower standard errors would have affected that. Nevertheless, it might have been the case that our infographic was not very efficiently designed as there is a plethora of design parameters that could have potentially yielded higher retention and lower reading time, for instance. We are, after all, data scientists - not graphic designers.
+
+## References 
+ 
+Allen J. G., MacNaughton P., Satish U., Santanam S., Vallarino J., and Spengler J.D.  (2016). Associations of cognitive function scores with carbon dioxide, ventilation, and volatile organic compound exposures in office workers: a controlled exposure study of green and conventional office environments. Environ Health Perspect, 124, 805–812.
+
+Azuma, Kenichi, Kagi, Naoki, Yanagi, U., and Osawa, Haruki.  (2018).  Effects of low-level inhalation exposure to carbon dioxide in indoor environments: A short review on human health and psychomotor performance.  Environment International, 121(1), 51-56.
+
+Berinsky, A. J., Huber, G. A., and Lenz, G. S.  (2012).  Evaluating online labor markets for experimental research:  Amazon.com’s mechanical turk.  Political Analysis, 20(3), 351-368.  
+
+Coley, David A., Greeves, Rupert, and Saxby, Brian K.  (2007).  The effect of low ventilation rates on the cognitive function of a primary school class.  International Journal of Ventilation, 6(2), 107-112.
+ 
+Collins, M., R. Knutti, J. Arblaster, J.-L. Dufresne, T. Fichefet, P. Friedlingstein, X. Gao, W.J. Gutowski, T. Johns, G. Krinner, M. Shongwe, C. Tebaldi, A.J. Weaver and M. Wehner, 2013: Long-term Climate Change: Projections, Commitments and Irreversibility. In: Climate Change 2013: The Physical Science Basis. Contribution of Working Group I to the Fifth Assessment Report of the Intergovernmental Panel on Climate Change [Stocker, T.F., D. Qin, G.-K. Plattner, M. Tignor, S.K. Allen, J. Boschung, A. Nauels, Y. Xia, V. Bex and P.M. Midgley (eds.)]. Cambridge University Press, Cambridge, United Kingdom and New York, NY, USA.
+ 
+Fernbach, P. M., Rogers, T., Fox, C. R., and Sloman, S. A.  (2013).  Political extremism is supported by an illusion of understanding.  Psychological Science, 24, 939-946.  
+ 
+Fisk, W., Wargocki, P., and Zhang, X.  (2019).  Do indoor CO2 levels directly affect perceived air quality, health, or work performance?  ASHRAE Journal September 2019, 70-77.
+ 
+Griffiths, M., and Eftekharib, M.  (2008).  Control of CO2 in a naturally ventilated classroom.  Energy and Buildings, 40(4), 556-560.
+
+Hansen, J. Sato, M., and Ruedy, R. (2012).  Perception of Climate Change.  Proceedings of the National Academy of Sciences, 109(37), E2415-E2423.
+
+Howe, P. D., Mildenberger, M., Marlon, J. R., and Leiserowitz, A.  (2015).  Geographic variation in opinions on climate change at state and local scales in the usa.  Nature Climate Change, 5(6), 596-603.
+
+IPCC (2014).  Climate Change 2014:  Impacts, adaptation, and vulnerability.  Contribution of Working Group II to the Fifth Assessment Report of the Intergovernmental Panel on Climate Change.  Intergovernmental Panel on Climate Change, Geneva, Switzerland.
+ 
+Jacobson, T. A., Kler, J. S., Hernke, M.T., Braun, R. K., Meyer, K. C., and Funk, W. E.  (2019).  Direct human health risks of increased atmospheric carbon dioxide. Nat Sustain 2, 691–701. 
+
+Kajtar, L. and Herczeg, L.  (2012).  Influence of carbon-dioxide concentration on human well-being and intensity of mental work.  Quarterly Journal of the Hungarian Meteorological Service, 116(2), 145-169.
+
+Ranney, M. A. and Clark, D. (2016).  Climate Change Conceptual Change: Scientific Information Can Transform Attitudes. Top Cogn Sci, 8: 49-75. doi:10.1111/tops.12187.
+
+Ranney, M. A., Clark, D., Reinholz, D. L., and Cohen, S. (2012).  Changing Global Warming Beliefs with Scientific Information: Knowledge, Attitudes, and RTMD (Reinforced Theistic Manifest Destiny Theory).  In N. Miyake, D. Peebles, & R. P. Cooper (Eds.), Proceedings of the 34th Annual Meeting of the Cognitive Science Society (pp. 2228-2233). Austin, TX: Cognitive Science Society.
+
+Ranney, M.A., Shonman, M., Fricke, K., Lamprey, L. N., & Kumar, P.  (2019). Information that boosts normative global warming acceptance without polarization: Toward J. S. Mill’s political ethology of national character. In D. A. Wilkenfeld & R. Samuels  (Eds.) Anthology on the experimental philosophy of science(pp. 61-96). (In Bloomsbury's Advances in Experimental Philosophy series.)
+
+Romps, D. M. & Retzinger, J. P. (2019).  Climate news articles lack basic climate science.  Environmental Research Communications 1(8).
+
+Satish, U. et al. (2012).  Is CO2 an indoor pollutant?  Direct effects of low-to-moderate CO2 concentration on human decision-making performance.  Environmental Health Perspectives 120(12), 1671-77. 
+
+Scripps Institution of Oceanography. (2020).  A daily record of global atmospheric carbon dioxide concentration. UC San Diego. https://scripps.ucsd.edu/programs/keelingcurve/.
+
+Scully, R. R. et al. (2019).  Effects of acute exposures to carbon dioxide on decision making and cognition in astronaut-like subjects. Npj Microgravity 5(1), 17.
+
+Seppänen, O. A., Fisk, W. J., and Mendell, M. J.  (1999). Association of ventilation rates and CO2 concentrations with health and other responses in commercial and institutional buildings. Indoor Air, 9(4), 217-296.  
+
+Shendell, D.C., Prill, R., Fisk, W. J., Apte, M.G., Blake, D. and Faulkner, D.  (2004).  Associations between classroom  CO2 concentrations and student performance.  Indoor Air, 14(5), 333‐341. 
+
+United States Environmental Protections Agency. (2000).  Healthy buildings, healthy people: a vision for the 21st century. Office of Air and Radiation.
+
+Xu, Feng, Uh, Jinsoo, Brier, Matthew R., Hart, Jr., John, Yezhuvath, Uma S., Gu, Hong, Yang, Yihong, and Lu, Hanzhang. (2011)  The influence of carbon dioxide on brain activity and metabolism in conscious humans. Journal of cerebral blood flow and metabolism : official journal of the International Society of Cerebral Blood Flow and Metabolism, 31(1), 58-67.  
