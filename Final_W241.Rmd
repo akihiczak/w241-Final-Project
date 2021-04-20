@@ -1,5 +1,6 @@
 ---
-title: "Communicating Climate Science: Infographic vs. Text"
+title: "Experimentally Measuring the Efficacy of Communicating Novel Climate Science"
+author: "Alex Kihiczak, Filippos Papapolyzos, and Harinandan Srikanth"
 output:
   pdf_document: default
   html_document: default
@@ -471,7 +472,7 @@ In our reading time models, although we got interesting treatment effect estimat
 
 ## Conclusions and Take-aways
 
-Although we were not successful in detecting any large treatment effects, as we had initially set out for, we were able to get some very interesting insight from a diverse pool of US-based participants. Specifically, we deemed it interesting that political alignment seemed to be correlated with reading time and belief score. We believe that especially the latter relationship showcases the importance of providing accurate, non-partisan information about global warming to the general public since it is a subject that should concern individuals regardless of their political alignment. One potential source of political bias might have been introduced by us including the UC Berkeley logo in the survey, since the University has a well-known political reputation.
+Although we were not successful in detecting any large treatment effects, as we had initially set out for, we were able to get some very interesting insight from a diverse pool of US-based participants. Specifically, we deemed it interesting that political alignment seemed to be highly correlated with reading time and belief score, across treatments. Similarly, it is encouraging that the treatment was not any less effective for specific political groups. We believe that especially the latter relationship showcases the importance of providing accurate, non-partisan information about global warming to the general public since it is a subject that should concern individuals regardless of their political alignment. In attempting to best simulate what a real world exposure to our climate interventions would look like, we included the UC Berkeley logo in the survey, since the materials would likely be published from an academic setting. This addition could have added more noise to our estimates by impacting responses from participants who may believe Berkeley has a liberal agenda in promoting climate science.
 
 In hindsight, we might have chosen a larger sample size so as to produce a relatively more well-powered study. This is because many of our estimates were on the edge of significance and it would have been interesting to see whether lower standard errors would have affected that. Nevertheless, it might have been the case that our infographic was not very efficiently designed as there is a plethora of design parameters that could have potentially yielded higher retention and lower reading time, for instance. We are, after all, data scientists - not graphic designers.
 
